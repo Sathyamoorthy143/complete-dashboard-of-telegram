@@ -1,0 +1,7 @@
+python-telegram-bot[job-queue]
+fastapi
+uvicorn
+python-dotenv
+requests
+pydantic
+telethon
