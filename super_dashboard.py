@@ -29,39 +29,39 @@ from telegram.ext import (
 )
 from telethon import TelegramClient, events
 
-# --- CUSTOM REQUEST ENGINE (Fix for HF Networking) ---
+# --- ROBUST REQUEST ENGINE (Fix for Hugging Face Networking) ---
 class RequestsRequest(BaseRequest):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
-        self._session = requests.Session()
 
     @property
-    def connect_timeout(self): return 60.0
+    def connect_timeout(self) -> Optional[float]: return 30.0
     @property
-    def read_timeout(self): return 60.0
+    def read_timeout(self) -> Optional[float]: return 30.0
     @property
-    def write_timeout(self): return 60.0
+    def write_timeout(self) -> Optional[float]: return 30.0
     @property
-    def pool_timeout(self): return 60.0
+    def pool_timeout(self) -> Optional[float]: return 30.0
     @property
-    def connection_pool_size(self): return 1
+    def connection_pool_size(self) -> Optional[int]: return 1
     @property
-    def proxy_url(self): return None
+    def proxy_url(self) -> Optional[str]: return None
     @property
-    def http_version(self): return "1.1"
+    def http_version(self) -> str: return "1.1"
 
     async def do_request(self, url, method, data=None, files=None, **kwargs):
         def _sync_req():
-            return self._session.request(method, url, data=data, files=files, timeout=60)
+            # Use direct requests call (proven to work on your HF space)
+            return requests.request(method, url, data=data, files=files, timeout=45)
         
         try:
             response = await asyncio.to_thread(_sync_req)
             return response.status_code, response.content
         except Exception as e:
-            raise Exception(f"Requests Engine Error: {e}")
+            return 500, b'{"ok": false, "error": "Network Error"}'
 
     async def initialize(self): pass
-    async def shutdown(self): self._session.close()
+    async def shutdown(self): pass
 
 # Load environment variables
 load_dotenv()
@@ -316,9 +316,10 @@ async def main_hub():
     
     print(f"🏰 Hub starting on port {PORT}...")
     
-    # Use our custom Requests engine to bypass httpx blockage
+    # Using custom Requests engine because HTTPX times out on some HF spaces
     request_config = RequestsRequest()
     bot_app = ApplicationBuilder().token(BOT_TOKEN).request(request_config).build()
+    
     
     bot_app.add_handler(CommandHandler("start", start))
     bot_app.add_handler(CallbackQueryHandler(button_handler))
