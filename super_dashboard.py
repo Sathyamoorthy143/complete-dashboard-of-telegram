@@ -33,6 +33,10 @@ from telethon import TelegramClient, events
 class RequestsRequest(BaseRequest):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
+        self._session = requests.Session()
+        self._session.headers.update({
+            "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36"
+        })
 
     @property
     def connect_timeout(self) -> Optional[float]: return 30.0
@@ -43,7 +47,7 @@ class RequestsRequest(BaseRequest):
     @property
     def pool_timeout(self) -> Optional[float]: return 30.0
     @property
-    def connection_pool_size(self) -> Optional[int]: return 1
+    def connection_pool_size(self) -> Optional[int]: return 10
     @property
     def proxy_url(self) -> Optional[str]: return None
     @property
@@ -51,8 +55,7 @@ class RequestsRequest(BaseRequest):
 
     async def do_request(self, url, method, data=None, files=None, **kwargs):
         def _sync_req():
-            # Use direct requests call (proven to work on your HF space)
-            return requests.request(method, url, data=data, files=files, timeout=45)
+            return self._session.request(method, url, data=data, files=files, timeout=30)
         
         try:
             response = await asyncio.to_thread(_sync_req)
