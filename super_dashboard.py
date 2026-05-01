@@ -58,6 +58,7 @@ class RequestsRequest(BaseRequest):
             response = await asyncio.to_thread(_sync_req)
             return response.status_code, response.content
         except Exception as e:
+            print(f"❌ Network Error in RequestsRequest: {e}")
             return 500, b'{"ok": false, "error": "Network Error"}'
 
     async def initialize(self): pass
